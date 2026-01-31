@@ -65,7 +65,7 @@ class LLMJudge:
         
         return None
 
-    def read_markdown_content(self, md_path: Path, max_chars: int = 1000000) -> str:
+    def read_markdown_content(self, md_path: Path, max_chars: int = 100000) -> str:
         """
         Read markdown file content (truncated if too long).
         
