@@ -53,21 +53,180 @@ def stream_response(response: str):
         time.sleep(0.02)  # Délai entre chaque mot
 
 
-def speech_to_text(audio_bytes: bytes) -> str:
-    """Convertit l'audio en texte avec le VoiceAssistant (Whisper HuggingFace)."""
+def speech_to_text(audio_bytes: bytes) -> tuple[str, str]:
+    """Convertit l'audio en texte avec le VoiceAssistant (Whisper HuggingFace).
+
+    Returns:
+        Tuple (texte transcrit, langue détectée) ou (None, None) en cas d'erreur
+    """
     try:
         voice_assistant = load_voice_assistant()
-        return voice_assistant.speech_to_text(audio_bytes, language="fr")
+        return voice_assistant.speech_to_text(
+            audio_bytes, language=None, detect_language=True
+        )
     except Exception as e:
         st.error(f"Erreur de transcription: {e}")
-        return None
+        return None, None
 
 
-def text_to_speech(text: str) -> bytes:
+def detect_text_language(text: str) -> str:
+    """Détecte la langue d'un texte en utilisant des patterns simples.
+
+    Returns:
+        Code de langue (fr, en, es, de, it, pt, ar, etc.) ou 'fr' par défaut
+    """
+    text_lower = text.lower()
+
+    # Patterns pour chaque langue (mots communs)
+    patterns = {
+        "fr": [
+            "bonjour",
+            "merci",
+            "comment",
+            "pourquoi",
+            "quoi",
+            "quel",
+            "quelle",
+            "est-ce",
+            "je",
+            "vous",
+            "nous",
+            "les",
+            "des",
+            "une",
+            "pour",
+            "avec",
+            "dans",
+            "sur",
+            "que",
+            "qui",
+        ],
+        "en": [
+            "hello",
+            "thank",
+            "how",
+            "why",
+            "what",
+            "which",
+            "is",
+            "are",
+            "you",
+            "we",
+            "the",
+            "for",
+            "with",
+            "this",
+            "that",
+            "have",
+            "has",
+            "can",
+            "would",
+            "could",
+        ],
+        "es": [
+            "hola",
+            "gracias",
+            "cómo",
+            "por qué",
+            "qué",
+            "cuál",
+            "es",
+            "son",
+            "usted",
+            "nosotros",
+            "los",
+            "las",
+            "para",
+            "con",
+            "este",
+            "esta",
+            "tiene",
+            "puede",
+        ],
+        "de": [
+            "hallo",
+            "danke",
+            "wie",
+            "warum",
+            "was",
+            "welche",
+            "ist",
+            "sind",
+            "sie",
+            "wir",
+            "die",
+            "der",
+            "das",
+            "für",
+            "mit",
+            "haben",
+            "kann",
+            "können",
+        ],
+        "it": [
+            "ciao",
+            "grazie",
+            "come",
+            "perché",
+            "cosa",
+            "quale",
+            "è",
+            "sono",
+            "lei",
+            "noi",
+            "il",
+            "la",
+            "per",
+            "con",
+            "questo",
+            "questa",
+            "ha",
+            "può",
+        ],
+        "pt": [
+            "olá",
+            "obrigado",
+            "como",
+            "por que",
+            "o que",
+            "qual",
+            "é",
+            "são",
+            "você",
+            "nós",
+            "os",
+            "as",
+            "para",
+            "com",
+            "este",
+            "esta",
+            "tem",
+            "pode",
+        ],
+        "ar": ["مرحبا", "شكرا", "كيف", "لماذا", "ماذا", "أي", "هو", "هي", "أنت", "نحن"],
+    }
+
+    scores = {lang: 0 for lang in patterns}
+
+    for lang, words in patterns.items():
+        for word in words:
+            if word in text_lower:
+                scores[lang] += 1
+
+    # Retourner la langue avec le score le plus élevé, ou 'fr' par défaut
+    max_score = max(scores.values())
+    if max_score > 0:
+        return max(scores, key=scores.get)
+    return "fr"
+
+
+def text_to_speech(text: str, language: str = "fr") -> bytes:
     """Convertit le texte en audio avec le VoiceAssistant (Edge TTS - voix naturelle)."""
     try:
         voice_assistant = load_voice_assistant()
-        return voice_assistant.text_to_speech(text, language="fr", output_format="mp3")
+        return voice_assistant.text_to_speech(
+            text, language=language, output_format="mp3"
+        )
     except Exception as e:
         st.error(f"Erreur TTS: {e}")
         return None
@@ -234,6 +393,8 @@ def init_session_state():
         st.session_state.is_voice_question = False
     if "autoplay_audio" not in st.session_state:
         st.session_state.autoplay_audio = False
+    if "detected_language" not in st.session_state:
+        st.session_state.detected_language = "fr"
 
 
 def clear_conversation():
@@ -383,10 +544,21 @@ def render_chat_interface():
         if audio_bytes and audio_bytes != st.session_state.get("last_audio"):
             st.session_state.last_audio = audio_bytes
             with st.spinner("🎤 Transcription avec Whisper..."):
-                transcribed_text = speech_to_text(audio_bytes)
+                transcribed_text, detected_lang = speech_to_text(audio_bytes)
                 if transcribed_text:
-                    st.success(f'✅ "{transcribed_text}"')
+                    lang_names = {
+                        "fr": "🇫🇷 Français",
+                        "en": "🇬🇧 English",
+                        "es": "🇪🇸 Español",
+                        "de": "🇩🇪 Deutsch",
+                        "it": "🇮🇹 Italiano",
+                        "pt": "🇵🇹 Português",
+                        "ar": "🇸🇦 العربية",
+                    }
+                    lang_display = lang_names.get(detected_lang, detected_lang)
+                    st.success(f'✅ [{lang_display}] "{transcribed_text}"')
                     st.session_state.voice_input = transcribed_text
+                    st.session_state.detected_language = detected_lang or "fr"
                     st.session_state.is_voice_question = (
                         True  # Marquer comme question vocale
                     )
@@ -397,11 +569,18 @@ def render_chat_interface():
 
     # Utiliser l'entrée vocale si disponible
     is_voice_question = False
+    current_language = "fr"  # Langue par défaut
+
     if "voice_input" in st.session_state and st.session_state.voice_input:
         prompt = st.session_state.voice_input
         st.session_state.voice_input = None
         is_voice_question = st.session_state.get("is_voice_question", False)
         st.session_state.is_voice_question = False  # Réinitialiser
+        current_language = st.session_state.get("detected_language", "fr")
+    elif prompt:
+        # Détecter la langue pour les questions texte
+        current_language = detect_text_language(prompt)
+        st.session_state.detected_language = current_language
 
     if prompt:
         # Fermer automatiquement le PDF affiché quand une nouvelle question est posée
@@ -416,9 +595,12 @@ def render_chat_interface():
 
         # Générer la réponse
         with st.chat_message("assistant", avatar="🤖"):
-            with st.spinner("Recherche en cours..."):
+            with st.status("🔍 Recherche en cours...", expanded=True) as status:
                 try:
-                    result = st.session_state.conversation.chat(prompt)
+                    # Passer la langue détectée au workflow
+                    result = st.session_state.conversation.chat(
+                        prompt, language=current_language
+                    )
                     response = result["response"]
 
                     # Extraire les fichiers uniques des chunks similaires
@@ -439,8 +621,14 @@ def render_chat_interface():
 
                     # Générer et jouer l'audio seulement si la question était vocale
                     if is_voice_question:
-                        with st.spinner("🔊 Génération de la réponse vocale..."):
-                            audio_response = text_to_speech(response)
+                        # Utiliser la langue détectée pour la réponse vocale
+                        response_lang = st.session_state.get("detected_language", "fr")
+                        with st.spinner(
+                            f"🔊 Génération de la réponse vocale ({response_lang})..."
+                        ):
+                            audio_response = text_to_speech(
+                                response, language=response_lang
+                            )
 
                         if audio_response:
                             # Ajouter à l'historique avec l'audio

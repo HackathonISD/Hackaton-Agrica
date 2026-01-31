@@ -1,9 +1,0 @@
-[project]
-name = "hackathon-app"
-version = "0.1.0"
-description = "A hackathon project"
-requires-python = ">=3.9"
-dependencies = []
-
-[tool.uv]
-# UV configuration

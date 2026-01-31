@@ -26,16 +26,42 @@ from retrive_similar_documents import retrieve_similar_documents
 CSV_PATH = "data/files_index.csv"
 
 
-def get_system_prompt() -> str:
+def get_system_prompt(language: str = "fr") -> str:
     """
     Prompt système imposant la citation explicite des documents
     comme références métier, sans jamais révéler le fonctionnement RAG
     ni faire de référence technique ou interne.
+
+    Args:
+        language: Code de langue pour la réponse (fr, en, es, de, it, pt, ar, etc.)
     """
     today = datetime.now().strftime("%d/%m/%Y")
 
+    # Instructions de langue
+    language_instructions = {
+        "fr": "Tu dois répondre en FRANÇAIS.",
+        "en": "You MUST respond in ENGLISH.",
+        "es": "Debes responder en ESPAÑOL.",
+        "de": "Du MUSST auf DEUTSCH antworten.",
+        "it": "Devi rispondere in ITALIANO.",
+        "pt": "Você DEVE responder em PORTUGUÊS.",
+        "ar": "يجب أن تجيب بالعربية.",
+        "nl": "Je MOET in het NEDERLANDS antwoorden.",
+        "pl": "Musisz odpowiedzieć po POLSKU.",
+        "ru": "Вы ДОЛЖНЫ отвечать на РУССКОМ.",
+        "zh": "你必须用中文回答。",
+        "ja": "日本語で回答してください。",
+        "ko": "한국어로 답변해야 합니다.",
+    }
+
+    lang_instruction = language_instructions.get(language, language_instructions["fr"])
+
     return f"""
 Date du jour : {today}
+
+LANGUE DE RÉPONSE OBLIGATOIRE :
+{lang_instruction}
+Réponds TOUJOURS dans la langue indiquée ci-dessus, quelle que soit la langue des documents sources.
 
 Tu es un assistant expert en protection sociale agricole.
 Tu réponds comme un professionnel humain qui maîtrise naturellement son sujet.
@@ -79,6 +105,7 @@ class GraphState(TypedDict):
 
     messages: Annotated[Sequence[BaseMessage], operator.add]
     user_query: str
+    language: str  # Langue de la question (fr, en, es, etc.)
     selected_files: List[str]
     similar_chunks: List[Dict]
     context_text: str
@@ -199,10 +226,12 @@ def generate_response_node(state: GraphState) -> Dict:
         "Réponse:"
     )
 
+    # Utiliser la langue détectée pour le prompt système
+    language = state.get("language", "fr")
     llm_response = llm_client.generate_response_with_history(
         user_prompt,
         history=history,
-        system_prompt=get_system_prompt(),
+        system_prompt=get_system_prompt(language),
         temperature=0.2,
     )
 
@@ -261,12 +290,13 @@ class ConversationWorkflow:
         """Efface l'historique de conversation en créant un nouveau thread."""
         self.thread_id = str(uuid.uuid4())
 
-    def chat(self, user_query: str) -> Dict[str, object]:
+    def chat(self, user_query: str, language: str = "fr") -> Dict[str, object]:
         """
         Envoie un message et reçoit une réponse avec mémoire.
 
         Args:
             user_query: Question de l'utilisateur.
+            language: Code de langue pour la réponse (fr, en, es, etc.)
 
         Returns:
             Dict contenant la réponse LLM et les résultats intermédiaires.
@@ -278,6 +308,7 @@ class ConversationWorkflow:
         result = self.app.invoke(
             {
                 "user_query": user_query,
+                "language": language,
                 "messages": [],
                 "selected_files": [],
                 "similar_chunks": [],

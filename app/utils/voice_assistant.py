@@ -118,16 +118,19 @@ class VoiceAssistant:
         self,
         audio_bytes: bytes,
         language: Optional[str] = None,
-    ) -> Optional[str]:
+        detect_language: bool = False,
+    ) -> Optional[str] | tuple[Optional[str], Optional[str]]:
         """
         Convertit un audio en texte avec Whisper.
 
         Args:
             audio_bytes: Données audio en bytes (WAV)
             language: Code de langue (fr, en, etc.) ou None pour auto-détection
+            detect_language: Si True, retourne aussi la langue détectée
 
         Returns:
-            Texte transcrit ou None en cas d'erreur
+            Si detect_language=False: Texte transcrit ou None en cas d'erreur
+            Si detect_language=True: Tuple (texte transcrit, langue détectée) ou (None, None)
         """
         try:
             # Sauvegarder temporairement l'audio
@@ -158,6 +161,39 @@ class VoiceAssistant:
                 audio_data, sampling_rate=16000, return_tensors="pt"
             ).input_features.to(self.device)
 
+            # Détecter la langue si demandé
+            detected_lang = None
+            if detect_language or language is None:
+                with torch.no_grad():
+                    # Utiliser le décodeur pour détecter la langue
+                    decoder_input_ids = torch.tensor(
+                        [[self.stt_model.config.decoder_start_token_id]]
+                    ).to(self.device)
+                    logits = self.stt_model(
+                        input_features, decoder_input_ids=decoder_input_ids
+                    ).logits
+
+                    # Les tokens de langue sont dans une plage spécifique
+                    lang_tokens = self.stt_processor.tokenizer.additional_special_tokens
+                    lang_token_ids = [
+                        self.stt_processor.tokenizer.convert_tokens_to_ids(t)
+                        for t in lang_tokens
+                        if t.startswith("<|") and t.endswith("|>") and len(t) == 6
+                    ]
+
+                    if lang_token_ids:
+                        lang_logits = logits[0, 0, lang_token_ids]
+                        predicted_lang_idx = lang_logits.argmax().item()
+                        predicted_lang_token = (
+                            self.stt_processor.tokenizer.convert_ids_to_tokens(
+                                lang_token_ids[predicted_lang_idx]
+                            )
+                        )
+                        detected_lang = predicted_lang_token.replace("<|", "").replace(
+                            "|>", ""
+                        )
+                        print(f"  🌍 Langue détectée: {detected_lang}")
+
             # Configurer la langue si spécifiée
             forced_decoder_ids = None
             if language:
@@ -179,10 +215,16 @@ class VoiceAssistant:
                 predicted_ids, skip_special_tokens=True
             )[0]
 
-            return transcription.strip()
+            result_text = transcription.strip()
+
+            if detect_language:
+                return result_text, detected_lang or self.default_language
+            return result_text
 
         except Exception as e:
             print(f"❌ Erreur STT: {e}")
+            if detect_language:
+                return None, None
             return None
 
     def text_to_speech(
