@@ -8,7 +8,7 @@ from typing import List, Dict, Tuple
 
 import faiss
 import numpy as np
-from embedde_document import embed_document
+from Hackaton.app.utils.embed_document import embed_document
 
 
 def load_vector_database(database_folder: str) -> Tuple[faiss.IndexFlatL2, List[Dict]]:
