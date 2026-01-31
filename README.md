@@ -1,221 +1,172 @@
-# Hackathon Project
+# 🌾 Assistant AGRICA - Assistant Protection Sociale Agricole
 
-A fast and efficient Python project setup using [uv](https://github.com/astral-sh/uv) for dependency management.
+Un assistant conversationnel intelligent pour la protection sociale agricole, utilisant un système RAG (Retrieval-Augmented Generation) avec support vocal multilingue.
 
-## Quick Start
+## ✨ Fonctionnalités
 
-### Prerequisites
+- 💬 **Chat intelligent** : Posez des questions sur la protection sociale agricole (santé, prévoyance, cotisations, garanties)
+- 🔍 **Recherche sémantique** : Recherche dans une base de documents vectorisée avec FAISS
+- 🎤 **Mode vocal** : Reconnaissance vocale avec Whisper et synthèse vocale avec Edge TTS
+- 🌍 **Multilingue** : Détection automatique de la langue et réponse dans la langue de l'utilisateur (FR, EN, ES, DE, IT, PT, AR...)
+- 📄 **Affichage PDF** : Visualisation des documents sources directement dans l'interface
 
-- Python 3.9 or higher
-- [uv](https://github.com/astral-sh/uv) installed
-
-### Install uv
-
-If you don't have `uv` installed, you can install it using:
-
-**On Windows (PowerShell):**
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-**On macOS/Linux:**
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Or visit [uv Installation Guide](https://docs.astral.sh/uv/getting-started/installation/) for more options.
-
-## Project Setup
-
-### 1. Clone or Navigate to Project Directory
-
-```bash
-cd Hackaton
-```
-
-### 2. Create Virtual Environment and Install Dependencies
-
-Using `uv` automatically creates and manages a virtual environment:
-
-```bash
-uv sync
-```
-
-This command will:
-- Create a `.venv` virtual environment
-- Install all dependencies from `pyproject.toml`
-- Generate a `uv.lock` file for reproducible installs
-
-### 3. Activate Virtual Environment
-
-**On Windows (PowerShell):**
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-**On Windows (Command Prompt):**
-```cmd
-.venv\Scripts\activate.bat
-```
-
-**On macOS/Linux:**
-```bash
-source .venv/bin/activate
-```
-
-## Managing Dependencies
-
-### Add a Package
-
-To add a new package to the project:
-
-```bash
-uv add package_name
-```
-
-**Example:** Adding `flask` and `requests`
-```bash
-uv add flask requests
-```
-
-### Add a Development Package
-
-For packages only needed during development (testing, linting, etc.):
-
-```bash
-uv add --dev package_name
-```
-
-**Example:** Adding pytest and black for development
-```bash
-uv add --dev pytest black
-```
-
-### Remove a Package
-
-To remove a package from the project:
-
-```bash
-uv remove package_name
-```
-
-**Example:** Removing a package
-```bash
-uv remove old_package
-```
-
-### Update All Packages
-
-To update all dependencies to their latest compatible versions:
-
-```bash
-uv sync --upgrade
-```
-
-### Update Specific Package
-
-To update a specific package:
-
-```bash
-uv add --upgrade package_name
-```
-
-### View Installed Packages
-
-To see all installed packages:
-
-```bash
-pip list
-```
-
-Or with uv:
-
-```bash
-uv pip list
-```
-
-## Environment Variables
-
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit `.env` with your configuration
-
-3. The application will automatically load variables from `.env`
-
-## Running the Application
-
-Once the environment is set up:
-
-```bash
-python -m app
-```
-
-Or run specific scripts:
-
-```bash
-python path/to/script.py
-```
-
-## Project Structure
+## 🏗️ Architecture
 
 ```
 Hackaton/
-├── app/                  # Main application code
-├── data/                 # Data files and datasets
-├── pyproject.toml        # Project metadata and dependencies
-├── uv.lock              # Locked dependency versions (auto-generated)
-├── .env.example         # Environment variables template
-├── .env                 # Environment variables (local, not in git)
-├── Dockerfile           # Container configuration
-└── README.md            # This file
+├── app/
+│   ├── streamlit_app.py      # Interface utilisateur Streamlit
+│   └── utils/
+│       ├── workflow.py       # Workflow LangGraph avec mémoire
+│       ├── llm.py            # Client OpenAI/Snowflake Cortex
+│       ├── voice_assistant.py # STT (Whisper) + TTS (Edge TTS)
+│       ├── embedde_document.py # Embeddings avec sentence-transformers
+│       ├── create_vector_database.py # Création base vectorielle FAISS
+│       ├── retrive_similar_documents.py # Recherche similaire
+│       └── select_relevant_files.py # Sélection documents pertinents
+├── data/
+│   ├── files_index.csv       # Index des documents avec résumés
+│   ├── vector_database/      # Base FAISS + métadonnées
+│   └── markdown_output/      # Documents convertis en markdown
+├── requirements.txt          # Dépendances Python
+├── setup_models.py           # Script de téléchargement des modèles
+└── .env.example              # Template variables d'environnement
 ```
 
-## Docker Support
+## 🚀 Installation
 
-Build the Docker image:
+### Prérequis
+
+- Python 3.9 ou supérieur
+- pip
+
+### 1. Cloner le projet
 
 ```bash
-docker build -t hackathon-app .
+git clone <url-du-repo>
+cd Hackaton
 ```
 
-Run the container:
+### 2. Créer un environnement virtuel
+
+**Windows (PowerShell) :**
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**macOS/Linux :**
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Installer les dépendances
 
 ```bash
-docker run -it hackathon-app
+pip install -r requirements.txt
 ```
 
-## Tips for Hackathon Teams
+### 4. Configurer les variables d'environnement
 
-- **Share Setup Quickly:** Everyone just needs to run `uv sync` once to get started
-- **Consistent Versions:** The `uv.lock` file ensures everyone uses the same package versions
-- **Fast Installation:** `uv` is significantly faster than pip for dependency resolution
-- **Easy Collaboration:** When adding packages, just run `uv add` and commit `uv.lock` to git
-- **Don't commit `.venv`:** The `.gitignore` already excludes it; everyone rebuilds with `uv sync`
+Copier le fichier d'exemple et le modifier :
 
-## Common Commands Cheat Sheet
+```bash
+cp .env.example .env
+```
 
-| Command | Purpose |
-|---------|---------|
-| `uv sync` | Install all dependencies |
-| `uv add pkg` | Add a package |
-| `uv add --dev pkg` | Add development package |
-| `uv remove pkg` | Remove a package |
-| `uv sync --upgrade` | Update all packages |
-| `source .venv/bin/activate` | Activate virtual environment (macOS/Linux) |
-| `.\.venv\Scripts\Activate.ps1` | Activate virtual environment (Windows PowerShell) |
+Éditer `.env` avec vos credentials :
+```dotenv
+OPENAI_TOKEN=votre_token_api
+PROVIDER_URL=https://votre-provider.com/api/v2/cortex/v1
+```
 
-## Troubleshooting
+> **Note** : Ce projet utilise Snowflake Cortex comme provider LLM. Remplacez par vos propres credentials.
 
-**Command not found: `uv`**
-- Make sure uv is installed and in your PATH
-- Try restarting your terminal after installation
+### 5. Télécharger les modèles ML
 
-**Virtual environment issues**
-- Delete `.venv` folder and run `uv sync` again
-- On Windows PowerShell, if activation fails, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+Exécuter le script de setup pour pré-télécharger les modèles (embedding et Whisper) :
 
-**Lock file conflicts**
-- If you have merge conflicts in `uv.lock`, keep the version and run `uv sync` to regenerate
+```bash
+python setup_models.py
+```
+
+Cette étape télécharge :
+- 📦 **intfloat/multilingual-e5-base** (~1.1 GB) - Modèle d'embedding multilingue
+- 📦 **openai/whisper-small** (~967 MB) - Modèle de reconnaissance vocale
+
+### 6. Lancer l'application
+
+```bash
+streamlit run app/streamlit_app.py
+```
+
+L'application sera accessible sur : http://localhost:8501
+
+## 📖 Utilisation
+
+### Mode Texte
+1. Tapez votre question dans le champ de saisie
+2. La langue est détectée automatiquement
+3. La réponse est générée dans la même langue
+
+### Mode Vocal
+1. Cliquez sur le bouton microphone 🎤 dans la sidebar
+2. Parlez votre question (dans n'importe quelle langue supportée)
+3. La transcription s'affiche avec la langue détectée
+4. La réponse est générée et lue à voix haute dans votre langue
+
+### Langues supportées
+- 🇫🇷 Français
+- 🇬🇧 English
+- 🇪🇸 Español
+- 🇩🇪 Deutsch
+- 🇮🇹 Italiano
+- 🇵🇹 Português
+- 🇸🇦 العربية
+
+## 🛠️ Technologies utilisées
+
+| Composant | Technologie |
+|-----------|-------------|
+| Interface | Streamlit |
+| LLM | OpenAI API / Snowflake Cortex |
+| Orchestration | LangGraph + LangChain |
+| Embeddings | sentence-transformers (multilingual-e5-base) |
+| Base vectorielle | FAISS |
+| STT (Speech-to-Text) | Whisper (HuggingFace Transformers) |
+| TTS (Text-to-Speech) | Edge TTS (Microsoft Azure) |
+| Conversion PDF | Docling |
+
+## 🐳 Docker
+
+Build et lancer avec Docker :
+
+```bash
+docker build -t agrica-assistant .
+docker run -p 8501:8501 --env-file .env agrica-assistant
+```
+
+## ⚠️ Troubleshooting
+
+### Erreur 401 - Token invalide
+Vérifiez que votre `OPENAI_TOKEN` dans `.env` est valide et non expiré.
+
+### Modèles non téléchargés
+Relancez `python setup_models.py` pour télécharger les modèles.
+
+### Erreur d'activation PowerShell
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### Problème de mémoire
+Les modèles Whisper nécessitent ~2GB de RAM. Utilisez `whisper-tiny` si nécessaire.
+
+## 👥 Équipe
+
+Projet réalisé dans le cadre du Hackathon Hack'in Saclay - M2 ISD Paris Saclay
+
+## 📝 License
+
+MIT License
