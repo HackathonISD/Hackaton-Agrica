@@ -1,0 +1,56 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Model cache (will be downloaded at build time)
+# Uncomment if you want to include cached models
+# *.bin
+# *.safetensors
