@@ -587,11 +587,28 @@ def render_chat_interface():
         st.session_state.show_pdf = False
         st.session_state.current_pdf = None
 
+        # Préparer le contenu du message avec indicateur de langue pour les questions vocales
+        lang_flags = {
+            "fr": "🇫🇷",
+            "en": "🇬🇧",
+            "es": "🇪🇸",
+            "de": "🇩🇪",
+            "it": "🇮🇹",
+            "pt": "🇵🇹",
+            "ar": "🇸🇦",
+        }
+
+        if is_voice_question:
+            lang_flag = lang_flags.get(current_language, "🌐")
+            display_content = f"{lang_flag} {prompt}"
+        else:
+            display_content = prompt
+
         # Ajouter le message utilisateur
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append({"role": "user", "content": display_content})
 
         with st.chat_message("user", avatar="🧑"):
-            st.markdown(prompt)
+            st.markdown(display_content)
 
         # Générer la réponse
         with st.chat_message("assistant", avatar="🤖"):

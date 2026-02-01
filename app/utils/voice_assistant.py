@@ -165,44 +165,78 @@ class VoiceAssistant:
             detected_lang = None
             if detect_language or language is None:
                 with torch.no_grad():
-                    # Utiliser le décodeur pour détecter la langue
-                    decoder_input_ids = torch.tensor(
-                        [[self.stt_model.config.decoder_start_token_id]]
-                    ).to(self.device)
-                    logits = self.stt_model(
-                        input_features, decoder_input_ids=decoder_input_ids
-                    ).logits
+                    # Utiliser la méthode native de Whisper pour détecter la langue
+                    # C'est plus fiable que d'analyser les logits manuellement
+                    predicted_ids_for_lang = self.stt_model.generate(
+                        input_features,
+                        max_new_tokens=1,  # Juste le token de langue
+                        return_dict_in_generate=True,
+                        output_scores=True,
+                    )
 
-                    # Les tokens de langue sont dans une plage spécifique
-                    lang_tokens = self.stt_processor.tokenizer.additional_special_tokens
-                    lang_token_ids = [
-                        self.stt_processor.tokenizer.convert_tokens_to_ids(t)
-                        for t in lang_tokens
-                        if t.startswith("<|") and t.endswith("|>") and len(t) == 6
-                    ]
+                    # Extraire le token de langue des séquences générées
+                    generated_tokens = predicted_ids_for_lang.sequences[0]
 
-                    if lang_token_ids:
-                        lang_logits = logits[0, 0, lang_token_ids]
-                        predicted_lang_idx = lang_logits.argmax().item()
-                        predicted_lang_token = (
-                            self.stt_processor.tokenizer.convert_ids_to_tokens(
-                                lang_token_ids[predicted_lang_idx]
+                    # Chercher le token de langue dans les premiers tokens générés
+                    for token_id in generated_tokens[
+                        1:5
+                    ]:  # Ignorer le premier (start token)
+                        token = self.stt_processor.tokenizer.decode([token_id.item()])
+                        if token.startswith("<|") and token.endswith("|>"):
+                            potential_lang = token.replace("<|", "").replace("|>", "")
+                            # Vérifier si c'est un code de langue valide (2-3 caractères)
+                            if (
+                                len(potential_lang) in [2, 3]
+                                and potential_lang.isalpha()
+                            ):
+                                detected_lang = potential_lang
+                                break
+
+                    # Fallback: utiliser l'ancienne méthode si la nouvelle échoue
+                    if detected_lang is None:
+                        decoder_input_ids = torch.tensor(
+                            [[self.stt_model.config.decoder_start_token_id]]
+                        ).to(self.device)
+                        logits = self.stt_model(
+                            input_features, decoder_input_ids=decoder_input_ids
+                        ).logits
+
+                        # Les tokens de langue sont dans une plage spécifique
+                        lang_tokens = (
+                            self.stt_processor.tokenizer.additional_special_tokens
+                        )
+                        lang_token_ids = [
+                            self.stt_processor.tokenizer.convert_tokens_to_ids(t)
+                            for t in lang_tokens
+                            if t.startswith("<|")
+                            and t.endswith("|>")
+                            and 4 <= len(t) <= 7
+                        ]
+
+                        if lang_token_ids:
+                            lang_logits = logits[0, 0, lang_token_ids]
+                            predicted_lang_idx = lang_logits.argmax().item()
+                            predicted_lang_token = (
+                                self.stt_processor.tokenizer.convert_ids_to_tokens(
+                                    lang_token_ids[predicted_lang_idx]
+                                )
                             )
-                        )
-                        detected_lang = predicted_lang_token.replace("<|", "").replace(
-                            "|>", ""
-                        )
-                        print(f"  🌍 Langue détectée: {detected_lang}")
+                            detected_lang = predicted_lang_token.replace(
+                                "<|", ""
+                            ).replace("|>", "")
 
-            # Configurer la langue si spécifiée
+                    print(f"  🌍 Langue détectée: {detected_lang}")
+
+            # Configurer la langue pour forcer la transcription (pas la traduction)
+            # Utiliser la langue détectée si aucune langue n'est spécifiée
             forced_decoder_ids = None
-            if language:
-                lang_name = self.SUPPORTED_LANGUAGES.get(language, language)
-                forced_decoder_ids = self.stt_processor.get_decoder_prompt_ids(
-                    language=lang_name, task="transcribe"
-                )
+            lang_to_use = language or detected_lang or self.default_language
+            lang_name = self.SUPPORTED_LANGUAGES.get(lang_to_use, lang_to_use)
+            forced_decoder_ids = self.stt_processor.get_decoder_prompt_ids(
+                language=lang_name, task="transcribe"  # IMPORTANT: transcribe, pas translate
+            )
 
-            # Générer la transcription
+            # Générer la transcription dans la langue d'origine
             with torch.no_grad():
                 predicted_ids = self.stt_model.generate(
                     input_features,

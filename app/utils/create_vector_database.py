@@ -14,7 +14,7 @@ import faiss
 import numpy as np
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from transformers import AutoTokenizer
-from Hackaton.app.utils.embed_document import embed_document
+from embed_document import embed_document
 
 
 # =========================================================
