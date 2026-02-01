@@ -43,11 +43,25 @@ def load_markdown_files(markdown_folder: str) -> List[Tuple[str, str]]:
 
 
 # =========================================================
-# Conversion des tableaux markdown en phrases
+# Conversion des tableaux markdown en phrases structurées
+# Format: "nom_colonne: valeur" pour chaque cellule
 # =========================================================
 
 
 def markdown_table_to_sentences(table_lines: List[str]) -> List[str]:
+    """
+    Convertit un tableau markdown en phrases structurées pour l'embedding.
+
+    Chaque ligne du tableau est transformée en une phrase avec le format:
+    "Ligne N: colonne1: valeur1, colonne2: valeur2, ..."
+
+    Args:
+        table_lines: Lignes du tableau markdown
+
+    Returns:
+        Liste de phrases structurées représentant le tableau
+    """
+    # Parser les lignes du tableau
     rows = [
         [cell.strip() for cell in line.strip("|").split("|")]
         for line in table_lines
@@ -58,20 +72,38 @@ def markdown_table_to_sentences(table_lines: List[str]) -> List[str]:
         return []
 
     headers = rows[0]
+    # Nettoyer les headers (enlever les espaces et caractères spéciaux)
+    headers = [h.strip() for h in headers if h.strip()]
+
     data_rows = rows[1:]
     sentences = []
 
-    for row in data_rows:
-        if len(row) != len(headers):
-            continue
+    for row_idx, row in enumerate(data_rows, start=1):
+        # Filtrer les cellules vides dans la row
+        row = [cell.strip() for cell in row]
 
-        parts = []
+        # S'assurer que le nombre de colonnes correspond
+        if len(row) < len(headers):
+            row.extend([""] * (len(headers) - len(row)))
+        elif len(row) > len(headers):
+            row = row[: len(headers)]
+
+        # Construire les paires "colonne: valeur"
+        pairs = []
         for header, value in zip(headers, row):
-            if value:
-                parts.append(f"{header} : {value}")
+            if header and value:  # Ignorer si le header ou la valeur est vide
+                # Format: "nom_colonne: valeur"
+                pairs.append(f"{header}: {value}")
 
-        if parts:
-            sentences.append(" ; ".join(parts) + ".")
+        if pairs:
+            # Format final: "Ligne N - colonne1: valeur1, colonne2: valeur2, ..."
+            sentence = f"Ligne {row_idx} - " + ", ".join(pairs) + "."
+            sentences.append(sentence)
+
+    # Ajouter une phrase d'introduction avec les noms des colonnes
+    if headers and sentences:
+        intro = f"Tableau avec les colonnes: {', '.join(headers)}."
+        sentences.insert(0, intro)
 
     return sentences
 
