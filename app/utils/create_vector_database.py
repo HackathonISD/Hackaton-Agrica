@@ -1,7 +1,6 @@
 """
 Module pour créer une base de données vectorielle FAISS avec les embeddings des documents markdown.
-Les tableaux markdown sont convertis en phrases textuelles et les chunks sont tronqués
-au maximum de tokens supporté par le modèle d'embedding.
+Les tableaux markdown sont convertis en phrases textuelles.
 """
 
 import os
