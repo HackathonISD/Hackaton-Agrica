@@ -2,6 +2,10 @@
 
 Un assistant conversationnel intelligent pour la protection sociale agricole, utilisant un système RAG (Retrieval-Augmented Generation) avec support vocal multilingue.
 
+## Demo video
+
+Please refer to this link: https://drive.google.com/file/d/1_puYyd9DZbZ23thrrI_MHZ32MM0ZMniz/view?usp=sharing
+
 ## ✨ Fonctionnalités
 
 - 💬 **Chat intelligent** : Posez des questions sur la protection sociale agricole (santé, prévoyance, cotisations, garanties)
